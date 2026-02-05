@@ -41,20 +41,28 @@ public class BudgetCal
 		}
 	}
 	
+	static void display_data(ArrayList<user> loaded_people){
+		System.out.println(" ");
+		for (user p : loaded_people){
+			System.out.println(p.name+" -- "+p.bank_bal);
+		}
+		System.out.println(" ");
+	}
+	
 	static ArrayList<user> choose(Scanner in,ArrayList<user> loaded_people){
 		
 		ArrayList <user> selected_people= new ArrayList<>();
-		
-		System.out.println("1. Gayan");
-		System.out.println("2. Tharana");
-		System.out.println("3. Chapa");
-		System.out.println("4. Ravishan");
+		int count=1;
+		for (user p : loaded_people){
+			System.out.println(count+". "+p.name);
+			count++;
+		}
 		
 		while (true)
 		{
 			System.out.print("How many people to choose? : ");
 			int num= in.nextInt();
-			if (num <1 || num>4)
+			if (num <1 || num>loaded_people.size())
 			{
 				System.out.println("Invalid input. Try again.");
 				continue;
@@ -64,6 +72,10 @@ public class BudgetCal
 				{
 					System.out.print("Choose a person: ");
 					int personIndex= in.nextInt();
+					if (personIndex>loaded_people.size()){
+						x--;
+						System.out.println("Invalid. Choose in the range!");
+					}
 					selected_people.add(loaded_people.get(personIndex-1));
 				}
 			}
@@ -72,7 +84,7 @@ public class BudgetCal
 		return selected_people;
 	}
 	
-	static ArrayList <user> load_data(){
+	static ArrayList <user> load_data(Scanner in){
 		ArrayList<user> people= new ArrayList<>();
 		
 		Gson gson= new GsonBuilder().setPrettyPrinting().create();
@@ -86,11 +98,25 @@ public class BudgetCal
 			e.printStackTrace();
 		}
 		if (people.isEmpty()) {
-			people.add(new user("Gayan", 0));
-			people.add(new user("Tharana", 0));
-			people.add(new user("Chapa", 0));
-			people.add(new user("Ravishan", 0));
-
+			int num_of_people;
+			while (true){
+				System.out.print("How many users do you want to add? : ");
+				num_of_people=in.nextInt();
+				if (num_of_people>100){
+					System.out.println("Too many users. Ask the developer to edit the code to accommodate that many users.");
+				}else if (num_of_people<2){
+					System.out.println("Needs at least 2 users. Enter again.(Or ask the developer to edit the code to accommodate to a single person if you want to track just your own balance)");
+				}else{
+					break;
+				}
+			}
+			in.nextLine();
+			for(int x=0;x<num_of_people;x++){
+				System.out.print("Enter the user's name: ");
+				String uname= in.nextLine();
+				people.add(new user (uname, 0));
+			}
+			
 			try (FileWriter writer = new FileWriter("budget_data.json")) {
 				gson.toJson(people, writer);
 			} catch (IOException e) {
@@ -110,6 +136,36 @@ public class BudgetCal
 		}
 	}
 	
+	static void add_user(Scanner in,ArrayList <user> loaded_people){
+		in.nextLine();
+		System.out.print("Enter the user's name: ");
+		String uname= in.nextLine();
+		
+		loaded_people.add(new user(uname,0));
+	}
+	
+	static void del_user(Scanner in,ArrayList <user> loaded_people){
+		while(true){
+			in.nextLine();
+			System.out.print("Who do you want to delete: ");
+			String del_name= in.nextLine();
+			boolean found= false;
+			for(int i=loaded_people.size()-1;i>=0;i--){
+				if (loaded_people.get(i).name.equals(del_name)){
+					loaded_people.remove(i);
+					found=true;
+					break;
+				}
+			}
+			if (found==false){
+				System.out.println("Invalid name.Try again.(Spell check correctly!)");
+			}else{
+				System.out.println("User deleted successfully.");
+				break;
+			}
+		}
+	}
+	
 	public static void main(String[]args)
 	{	
 		Scanner in= new Scanner(System.in);
@@ -117,13 +173,16 @@ public class BudgetCal
 		BudgetCal obj= new BudgetCal();
 		int person=0;
 		
-		ArrayList<user> loaded_people= obj.load_data();
+		ArrayList<user> loaded_people= obj.load_data(in);
 		ArrayList<user> selected_people;
 		while(true)
 		{
+			obj.display_data(loaded_people);
 			System.out.println("1. Add money");
 			System.out.println("2. Subtract money");
-			System.out.println("3. Exit");
+			System.out.println("3. Add a user");
+			System.out.println("4. Delete a user");
+			System.out.println("5. Exit");
 			System.out.print("Enter what you want to do: ");
 			int action=in.nextInt();
 			
@@ -132,14 +191,26 @@ public class BudgetCal
 				selected_people = obj.choose(in,loaded_people);
 				obj.add_mon(selected_people,in);
 				System.out.println(selected_people);
+				obj.save_data(loaded_people);
 			
 			}else if (action==2)
 			{
 				selected_people = obj.choose(in,loaded_people);
 				obj.subtract_mon(selected_people,in);
 				System.out.println(selected_people);
+				obj.save_data(loaded_people);
 				
 			}else if (action==3)
+			{
+				obj.add_user(in,loaded_people);
+				obj.save_data(loaded_people);
+				
+			}else if(action==4)
+			{
+				obj.del_user(in,loaded_people);
+				obj.save_data(loaded_people);
+				
+			}else if(action==5)
 			{
 				break;
 			}
@@ -152,8 +223,16 @@ public class BudgetCal
 }
 
 /*
-add an amount to a person's acc and display it. |||||||||
-subtract an amount from a selected number of people.------------ how to choose the people to add or subtract --> add them to an array.
+add an amount to a person's acc and display it. ✅
+subtract an amount from a selected number of people.✅
 ability to name every transaction.
 keep a log of every transaction and their dates.
+
+1. add people method,delete people method✅
+
+2. log_data
+- amount
+- wheather its an adddition or a subtraction
+- date&time
+- custom msg
 */
